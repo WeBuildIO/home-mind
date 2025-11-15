@@ -16,14 +16,6 @@ java {
 
 repositories {
     mavenLocal()
-    maven {
-        allowInsecureProtocol(true)
-        url "${nexusUrl}/repository/maven-public/"
-        credentials {
-            username = "${nexusUsername}"
-            password = "${nexusPassword}"
-        }
-    }
     maven { url "https://maven.aliyun.com/repository/public/" }
     mavenCentral()
 }
@@ -31,6 +23,7 @@ repositories {
 dependencies {
     implementation platform("org.springframework.ai:spring-ai-bom:1.0.0")
     implementation 'org.springframework.ai:spring-ai-starter-model-deepseek'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
 
     implementation 'org.springframework.boot:spring-boot-starter'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
