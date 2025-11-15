@@ -1,10 +1,15 @@
-package org.github.chuan.homemind;
+package org.github.chuan.homemind.service;
 
+import org.github.chuan.homemind.dto.ChatRequest;
+import org.github.chuan.homemind.dto.ChatResponse;
+import org.github.chuan.homemind.dto.StreamChunkResponse;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Service
 public class ChatService {
@@ -15,7 +20,7 @@ public class ChatService {
     public ChatService(ChatClient.Builder chatClientBuilder) {
         // 创建内存记忆 - 保存最近10轮对话
         this.chatMemory = MessageWindowChatMemory.builder()
-                .maxMessages(10)
+                .maxMessages(100)
                 .build();
 
         // 创建 ChatClient 并配置记忆功能
@@ -44,6 +49,24 @@ public class ChatService {
                 .content();
 
         return new ChatResponse(response, conversationId);
+    }
+
+    /**
+     * 流式处理用户消息 - 使用具体对象版本
+     */
+    public Flux<StreamChunkResponse> processMessageStreamWithObject(ChatRequest request) {
+        String conversationId = getOrCreateConversationId(request);
+
+        Flux<StreamChunkResponse> contentStream = chatClient.prompt()
+                .user(request.getMessage())
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
+                .stream()
+                .content()
+                .map(chunk -> StreamChunkResponse.chunk(chunk, conversationId));
+
+        return contentStream.concatWith(
+                Mono.just(StreamChunkResponse.end(conversationId))
+        );
     }
 
     /**

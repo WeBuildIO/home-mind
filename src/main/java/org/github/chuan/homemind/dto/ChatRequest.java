@@ -1,6 +1,5 @@
-package org.github.chuan.homemind;
+package org.github.chuan.homemind.dto;
 
-// ChatRequest.java
 public class ChatRequest {
     private String message;
     private String conversationId;
@@ -12,7 +11,6 @@ public class ChatRequest {
         this.conversationId = conversationId;
     }
 
-    // Getter 和 Setter
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
     public String getConversationId() { return conversationId; }

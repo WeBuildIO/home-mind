@@ -1,6 +1,5 @@
-package org.github.chuan.homemind;
+package org.github.chuan.homemind.dto;
 
-// ChatResponse.java
 public class ChatResponse {
     private String response;
     private String conversationId;
@@ -12,7 +11,6 @@ public class ChatResponse {
         this.timestamp = System.currentTimeMillis();
     }
 
-    // Getter
     public String getResponse() {
         return response;
     }

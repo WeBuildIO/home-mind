@@ -1,21 +1,27 @@
 package org.github.chuan.homemind;
 
+import lombok.RequiredArgsConstructor;
+import org.github.chuan.homemind.dto.ChatRequest;
+import org.github.chuan.homemind.dto.ChatResponse;
+import org.github.chuan.homemind.dto.StreamChunkResponse;
+import org.github.chuan.homemind.service.ASRService;
+import org.github.chuan.homemind.service.ChatService;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Flux;
 
-import java.time.Instant;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/chat")
 @CrossOrigin(origins = "*")
+@RequiredArgsConstructor
 public class ChatController {
 
     private final ChatService chatService;
-
-    public ChatController(ChatService chatService) {
-        this.chatService = chatService;
-    }
+    private final ASRService asrService;
 
     /**
      * 主要聊天接口
@@ -27,13 +33,11 @@ public class ChatController {
     }
 
     /**
-     * 快速聊天（无需会话ID）
+     * 流式聊天接口
      */
-    @PostMapping("/quick")
-    public ResponseEntity<ChatResponse> quickChat(@RequestParam String message) {
-        ChatRequest request = new ChatRequest(message, null);
-        ChatResponse response = chatService.processMessage(request);
-        return ResponseEntity.ok(response);
+    @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<StreamChunkResponse> streamMessage(@RequestBody ChatRequest request) {
+        return chatService.processMessageStreamWithObject(request);
     }
 
     /**
@@ -48,17 +52,14 @@ public class ChatController {
                 "conversationId", conversationId
         ));
     }
-
-    /**
-     * 健康检查
-     */
-    @GetMapping("/health")
-    public ResponseEntity<Map<String, String>> health() {
-        return ResponseEntity.ok(Map.of(
-                "status", "UP",
-                "service", "AI Chatbot",
-                "timestamp", Instant.now().toString()
-        ));
+    @PostMapping("/speech-to-text")
+    public ResponseEntity<String> speechToText(@RequestParam("audio") MultipartFile audioFile) {
+        try {
+            String text = asrService.speechToText(audioFile);
+            return ResponseEntity.ok(text);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("语音识别失败: " + e.getMessage());
+        }
     }
 }
 
