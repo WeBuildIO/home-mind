@@ -17,13 +17,16 @@ java {
 repositories {
     mavenLocal()
     maven { url "https://maven.aliyun.com/repository/public/" }
+    maven { url "https://repo.spring.io/snapshot" }
+    maven { url "https://repo.spring.io/milestone" }
     mavenCentral()
 }
 
 dependencies {
-    implementation platform("org.springframework.ai:spring-ai-bom:1.0.0")
-    implementation 'org.springframework.ai:spring-ai-starter-model-deepseek'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    implementation platform("org.springframework.ai:spring-ai-bom:1.0.0")
+    implementation 'org.springframework.ai:spring-ai-starter-model-openai'
 
     compileOnly 'org.projectlombok:lombok:1.18.36'
     annotationProcessor 'org.projectlombok:lombok:1.18.36'
