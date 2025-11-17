@@ -1,4 +1,4 @@
-package org.github.chuan.homemind;
+package org.github.webuild.homemind;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

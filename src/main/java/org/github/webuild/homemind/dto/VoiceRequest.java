@@ -1,4 +1,4 @@
-package org.github.chuan.homemind.dto;
+package org.github.webuild.homemind.dto;
 
 public class VoiceRequest {
     private String sessionId;

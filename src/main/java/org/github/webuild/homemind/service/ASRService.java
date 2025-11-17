@@ -1,4 +1,4 @@
-package org.github.chuan.homemind.service;
+package org.github.webuild.homemind.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

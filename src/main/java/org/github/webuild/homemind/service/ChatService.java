@@ -1,8 +1,8 @@
-package org.github.chuan.homemind.service;
+package org.github.webuild.homemind.service;
 
-import org.github.chuan.homemind.dto.ChatRequest;
-import org.github.chuan.homemind.dto.ChatResponse;
-import org.github.chuan.homemind.dto.StreamChunkResponse;
+import org.github.webuild.homemind.dto.ChatRequest;
+import org.github.webuild.homemind.dto.ChatResponse;
+import org.github.webuild.homemind.dto.StreamChunkResponse;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;

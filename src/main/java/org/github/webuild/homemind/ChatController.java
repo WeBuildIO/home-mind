@@ -1,11 +1,11 @@
-package org.github.chuan.homemind;
+package org.github.webuild.homemind;
 
 import lombok.RequiredArgsConstructor;
-import org.github.chuan.homemind.dto.ChatRequest;
-import org.github.chuan.homemind.dto.ChatResponse;
-import org.github.chuan.homemind.dto.StreamChunkResponse;
-import org.github.chuan.homemind.service.ASRService;
-import org.github.chuan.homemind.service.ChatService;
+import org.github.webuild.homemind.dto.ChatRequest;
+import org.github.webuild.homemind.dto.ChatResponse;
+import org.github.webuild.homemind.dto.StreamChunkResponse;
+import org.github.webuild.homemind.service.ASRService;
+import org.github.webuild.homemind.service.ChatService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
