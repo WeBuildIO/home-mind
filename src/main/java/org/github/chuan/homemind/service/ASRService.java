@@ -2,18 +2,11 @@ package org.github.chuan.homemind.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @Slf4j
 public class ASRService {
-
-    private final RestTemplate restTemplate;
-
-    public ASRService(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
-    }
 
     public String speechToText(MultipartFile audioFile) {
         // 校验文件
