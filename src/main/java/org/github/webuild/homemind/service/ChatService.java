@@ -1,5 +1,6 @@
 package org.github.webuild.homemind.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.github.webuild.homemind.dto.ChatRequest;
 import org.github.webuild.homemind.dto.ChatResponse;
 import org.github.webuild.homemind.dto.StreamChunkResponse;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 @Service
 public class ChatService {
 
@@ -47,8 +49,12 @@ public class ChatService {
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
                 .call()
                 .content();
-
-        return new ChatResponse(response, conversationId);
+        log.info("Chat response: {}", response);
+        ChatResponse chatResponse = new ChatResponse();
+        chatResponse.setChatReply(response);
+        chatResponse.setConversationId(conversationId);
+        chatResponse.setTimestamp(System.currentTimeMillis());
+        return chatResponse;
     }
 
     /**

@@ -4,12 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.github.webuild.homemind.dto.ChatRequest;
 import org.github.webuild.homemind.dto.ChatResponse;
 import org.github.webuild.homemind.dto.StreamChunkResponse;
-import org.github.webuild.homemind.service.ASRService;
 import org.github.webuild.homemind.service.ChatService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
 import java.util.Map;
@@ -21,7 +19,6 @@ import java.util.Map;
 public class ChatController {
 
     private final ChatService chatService;
-    private final ASRService asrService;
 
     /**
      * 主要聊天接口
@@ -51,15 +48,6 @@ public class ChatController {
                 "message", "对话记忆已清除",
                 "conversationId", conversationId
         ));
-    }
-    @PostMapping("/speech-to-text")
-    public ResponseEntity<String> speechToText(@RequestParam("audio") MultipartFile audioFile) {
-        try {
-            String text = asrService.speechToText(audioFile);
-            return ResponseEntity.ok(text);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("语音识别失败: " + e.getMessage());
-        }
     }
 }
 
