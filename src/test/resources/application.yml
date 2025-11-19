@@ -9,3 +9,10 @@ spring:
         options:
           model: "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B"
           temperature: 0.7
+#    deepseek:
+#      api-key: sk-amjufwzxcubqozmgtnimekrfsshtruprvjkvbuxcwtrzzcgt
+baidu:
+  speech:
+    api-key: 你的API Key
+    secret-key: 你的Secret Key
+    recognize-url: https://vop.baidu.com/server_api

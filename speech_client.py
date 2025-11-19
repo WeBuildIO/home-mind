@@ -8,7 +8,7 @@ FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 16000
 CHUNK = 1024
-RECORD_SECONDS = 10
+RECORD_SECONDS = 5
 SPRING_BOOT_URL = "http://192.168.2.102:8080/api/speech/recognize-chat"
 conversation_id = None  # 保存会话ID，实现连续对话
 
