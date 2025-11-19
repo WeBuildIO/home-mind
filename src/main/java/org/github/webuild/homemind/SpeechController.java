@@ -3,14 +3,12 @@ package org.github.webuild.homemind;
 import lombok.RequiredArgsConstructor;
 import org.github.webuild.homemind.dto.ChatRequest;
 import org.github.webuild.homemind.dto.ChatResponse;
-import org.github.webuild.homemind.dto.StreamChunkResponse;
 import org.github.webuild.homemind.service.BaiduSpeechService;
 import org.github.webuild.homemind.service.ChatService;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+
+import java.util.Base64;
 
 @RestController
 @RequestMapping("/api/speech")
@@ -46,48 +44,15 @@ public class SpeechController {
             chatRequest.setMessage(recognizedText);
             chatRequest.setConversationId(conversationId);
             ChatResponse chatResponse = chatService.processMessage(chatRequest);
+            byte[] audioData = speechService.textToSpeech(chatResponse.getChatReply());
+            String audioBase64 = Base64.getEncoder().encodeToString(audioData);
+            chatResponse.setAudioBase64(audioBase64);
             return ResponseEntity.ok(chatResponse);
         } catch (Exception e) {
             ChatResponse chatResponse = new ChatResponse();
             chatResponse.setError(e.getMessage());
             chatResponse.setTimestamp(System.currentTimeMillis());
             return ResponseEntity.internalServerError().body(chatResponse);
-        }
-    }
-
-    /**
-     * 流式响应：语音识别 + AI 流式回复（边生成边返回）
-     * 响应类型：text/event-stream（SSE 格式，客户端可逐段解析）
-     */
-    @PostMapping(value = "/recognize-chat-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<StreamChunkResponse> recognizeAndChatStream(
-            @RequestBody byte[] pcmData,
-            @RequestParam(required = false) String conversationId
-    ) {
-        try {
-            // 1. 先执行语音识别（同步，仅1次）
-            String recognizedText = speechService.recognize(pcmData);
-            if (recognizedText == null || recognizedText.trim().isEmpty()) {
-                String errConversationId = conversationId != null ? conversationId : "conv_" + System.currentTimeMillis();
-                return Flux.just(StreamChunkResponse.error("未识别到语音内容", errConversationId));
-            }
-
-            // 2. 构造对话请求，获取 AI 流式回复
-            ChatRequest chatRequest = new ChatRequest();
-            chatRequest.setMessage(recognizedText);
-            chatRequest.setConversationId(conversationId);
-            Flux<StreamChunkResponse> aiStream = chatService.processMessageStreamWithObject(chatRequest);
-
-            // 3. 组合流式响应：先返回「语音识别结果」，再返回「AI 回复片段」，最后返回「结束标记」
-            String finalConversationId = chatService.getOrCreateConversationId(chatRequest); // 获取最终会话ID
-            Mono<StreamChunkResponse> recognizeMono = Mono.just(StreamChunkResponse.recognize(recognizedText, finalConversationId));
-
-            // 顺序：识别结果 → AI 流式片段 → 结束标记
-            return recognizeMono.concatWith(aiStream).concatWith(Mono.just(StreamChunkResponse.end(finalConversationId)));
-
-        } catch (Exception e) {
-            String errConversationId = conversationId != null ? conversationId : "conv_" + System.currentTimeMillis();
-            return Flux.just(StreamChunkResponse.error("处理失败：" + e.getMessage(), errConversationId));
         }
     }
 

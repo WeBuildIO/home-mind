@@ -3,14 +3,11 @@ package org.github.webuild.homemind.service;
 import lombok.extern.slf4j.Slf4j;
 import org.github.webuild.homemind.dto.ChatRequest;
 import org.github.webuild.homemind.dto.ChatResponse;
-import org.github.webuild.homemind.dto.StreamChunkResponse;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 @Slf4j
 @Service
@@ -55,24 +52,6 @@ public class ChatService {
         chatResponse.setConversationId(conversationId);
         chatResponse.setTimestamp(System.currentTimeMillis());
         return chatResponse;
-    }
-
-    /**
-     * 流式处理用户消息 - 使用具体对象版本
-     */
-    public Flux<StreamChunkResponse> processMessageStreamWithObject(ChatRequest request) {
-        String conversationId = getOrCreateConversationId(request);
-
-        Flux<StreamChunkResponse> contentStream = chatClient.prompt()
-                .user(request.getMessage())
-                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
-                .stream()
-                .content()
-                .map(chunk -> StreamChunkResponse.chunk(chunk, conversationId));
-
-        return contentStream.concatWith(
-                Mono.just(StreamChunkResponse.end(conversationId))
-        );
     }
 
     /**

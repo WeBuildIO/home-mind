@@ -27,8 +27,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter'
 
     implementation platform("org.springframework.ai:spring-ai-bom:1.0.0")
-    implementation 'org.springframework.ai:spring-ai-starter-model-openai'
-//    implementation 'org.springframework.ai:spring-ai-starter-model-deepseek'
+//    implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+    implementation 'org.springframework.ai:spring-ai-starter-model-deepseek'
 
     compileOnly 'org.projectlombok:lombok:1.18.36'
     annotationProcessor 'org.projectlombok:lombok:1.18.36'

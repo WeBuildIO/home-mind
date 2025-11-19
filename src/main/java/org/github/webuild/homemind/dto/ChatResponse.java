@@ -6,6 +6,7 @@ import lombok.Data;
 public class ChatResponse {
     private String recognizedText;
     private String chatReply;
+    private String audioBase64;
     private String conversationId;
     private long timestamp;
     private String error;
