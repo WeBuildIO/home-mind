@@ -48,6 +48,7 @@ public class ChatService {
                 .content();
         log.info("Chat response: {}", response);
         ChatResponse chatResponse = new ChatResponse();
+        chatResponse.setRecognizedText(request.getMessage());
         chatResponse.setChatReply(response);
         chatResponse.setConversationId(conversationId);
         chatResponse.setTimestamp(System.currentTimeMillis());
