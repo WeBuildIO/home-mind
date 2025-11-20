@@ -3,11 +3,11 @@ package org.github.webuild.homemind.service;
 import lombok.extern.slf4j.Slf4j;
 import org.github.webuild.homemind.dto.ChatRequest;
 import org.github.webuild.homemind.dto.ChatResponse;
+import org.github.webuild.homemind.localtool.DateTimeTools;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
-import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -17,7 +17,7 @@ public class ChatService {
     private final ChatClient chatClient;
     private final ChatMemory chatMemory;
 
-    public ChatService(ChatClient.Builder chatClientBuilder, ToolCallbackProvider toolCallbackProvider) {
+    public ChatService(ChatClient.Builder chatClientBuilder) {
         // 创建内存记忆 - 保存最近100轮对话
         this.chatMemory = MessageWindowChatMemory.builder()
                 .maxMessages(100)
@@ -28,12 +28,12 @@ public class ChatService {
                 .defaultSystem("""
                         你是一个友好的AI聊天伙伴，名字叫"小派"。
                         语气亲切自然，像朋友一样聊天，会记住对话上下文。
-                        回答简洁但富有情感，适当使用表情符号。
+                        回答简洁但富有情感。
                         """)
                 .defaultAdvisors(
                         MessageChatMemoryAdvisor.builder(chatMemory).build()
                 )
-                .defaultToolCallbacks(toolCallbackProvider)
+                .defaultTools(new DateTimeTools())
                 .build();
     }
 

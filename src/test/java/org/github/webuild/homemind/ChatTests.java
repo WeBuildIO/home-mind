@@ -27,4 +27,12 @@ public class ChatTests {
         chatResponse = chatService.processMessage(chatRequest);
         assert chatResponse.getChatReply().contains("小明");
     }
+
+    @Test
+    public void toolTest() {
+        ChatRequest chatRequest = new ChatRequest();
+        chatRequest.setMessage("现在几点了");
+        ChatResponse chatResponse = chatService.processMessage(chatRequest);
+        System.out.println(chatResponse.getChatReply());
+    }
 }
