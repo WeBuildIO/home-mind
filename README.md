@@ -9,6 +9,8 @@
 
 同一局域网环境
 
+pvporcupine key(一个key只能绑定一个设备)
+
 # 更新系统
 ```bash
 sudo apt-get update
