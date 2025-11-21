@@ -43,26 +43,29 @@ def init_audio_player():
         return False
 
 def play_wakeup_beep():
-    """简化版唤醒蜂鸣（柔和中音，仅2段）"""
+    """模拟 Mac Siri 唤醒蜂鸣（短促柔和，还原原生质感）"""
     stream = GLOBAL_STATE["play_stream"]
     if not stream:
         return
 
-    # 柔和蜂鸣参数：低频率+稍长时长，避免尖锐
-    freq1, dur1 = 440, 0.2  # 第一段：中音（440Hz，0.2秒）
-    freq2, dur2 = 330, 0.3  # 第二段：低音（330Hz，0.3秒）
+    # 还原 Siri 音效参数：高频起调+低音收尾，总时长0.18秒
+    freq1, dur1 = 660, 0.08  # 起调：中音（660Hz，短促0.08秒，模拟Siri“叮”）
+    freq2, dur2 = 440, 0.1   # 收尾：低音（440Hz，稍长0.1秒，模拟Siri“咚”）
     sample_rate = AUDIO_CONFIG["rate"]
 
     try:
         stream.start_stream()
-        # 生成并播放两段蜂鸣
+        # 合并音频流，无缝衔接（无间隔，还原Siri紧凑质感）
+        audio_bytes = b''
         for freq, dur in [(freq1, dur1), (freq2, dur2)]:
-            # 生成正弦波音频（直接转字节，跳过列表拼接）
-            samples = (32767 * math.sin(2 * math.pi * freq * i / sample_rate) for i in range(int(sample_rate * dur)))
-            audio_bytes = b''.join(int(s).to_bytes(2, 'little', signed=True) for s in samples)
-            # 直接播放（复用配置的chunk_size，无需补0）
-            for i in range(0, len(audio_bytes), AUDIO_CONFIG["chunk"]):
-                stream.write(audio_bytes[i:i+AUDIO_CONFIG["chunk"]])
+            # 正弦波+轻微衰减，避免突兀收尾
+            samples = (
+                int(32767 * 0.7 * math.sin(2 * math.pi * freq * i / sample_rate))
+                for i in range(int(sample_rate * dur))
+            )
+            audio_bytes += b''.join(s.to_bytes(2, 'little', signed=True) for s in samples)
+        # 一次性播放，还原Siri丝滑音效
+        stream.write(audio_bytes)
         stream.stop_stream()
     except Exception as e:
         print(f"蜂鸣播放失败：{str(e)}")

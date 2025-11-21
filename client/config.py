@@ -7,7 +7,7 @@ AUDIO_CONFIG = {
     "channels": 1,                      # 声道数（单声道，减少数据传输量）
     "rate": 16000,                      # 采样率（16kHz，语音识别标准采样率）
     "chunk": 1024,                      # 音频块大小（每次读取的字节数，平衡延迟和性能）
-    "record_seconds": 6,                # 单次录音最长时长（秒）
+    "record_seconds": 5,                # 单次录音最长时长（秒）
     "timeout_seconds": 6                # 无声音超时退出时间（秒）
 }
 
