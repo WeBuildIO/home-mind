@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.github.webuild.homemind.dto.ChatRequest;
 import org.github.webuild.homemind.dto.ChatResponse;
 import org.github.webuild.homemind.localtool.DateTimeTools;
+import org.github.webuild.homemind.localtool.HomeAssistantTools;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -33,7 +34,10 @@ public class ChatService {
                 .defaultAdvisors(
                         MessageChatMemoryAdvisor.builder(chatMemory).build()
                 )
-                .defaultTools(new DateTimeTools())
+                .defaultTools(
+                        new DateTimeTools(),
+                        new HomeAssistantTools()
+                )
                 .build();
     }
 

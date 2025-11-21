@@ -17,3 +17,6 @@ baidu:
     api-key: NK3SFZjNgyggjUjJqvwukONC
     secret-key: kIfuAekCj2PntwoiOTBTCtZvqfGnYaVT
 
+homeassistant:
+  url: http://192.168.1.100:8123
+  token: 你的长期访问令牌
