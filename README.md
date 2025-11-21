@@ -15,8 +15,8 @@ sudo apt-get update
 ```
 # 安装依赖
 ```bash
-sudo apt-get install portaudio19-dev python3-pip
-pip3 install pyaudio numpy requests base64
+cd client
+pip install -r requirements.txt
 ```
 服务端安装 JDK 17（验证：java -version）
 
