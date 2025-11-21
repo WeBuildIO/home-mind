@@ -31,7 +31,7 @@ SERVER_CONFIG = {
 # 说明：Porcupine唤醒引擎配置，需替换为自己的Access Key和模型文件
 WAKEUP_CONFIG = {
     "access_key": "xxx",                # 唤醒服务Access Key（从Porcupine官网申请）
-    "ppn_file_name": "Hi-Siri_en_windows_v3_0_0.ppn",  # 唤醒词模型文件名（需放在程序同级目录）
+    "ppn_file_name": "keyword_files/hey_siri_windows.ppn",  # 唤醒词模型文件名（需放在程序同级目录）
     "sensitivity": 0.85                 # 唤醒灵敏度（0-1，越高越容易触发，建议0.8-0.9）
 }
 
