@@ -1,3 +1,4 @@
+import math
 import pyaudio
 import requests
 import json
@@ -40,6 +41,33 @@ def init_audio_player():
     except Exception as e:
         print(f"音频播放器初始化失败：{str(e)}")
         return False
+
+def play_wakeup_beep():
+    """简化版唤醒蜂鸣（柔和中音，仅2段）"""
+    stream = GLOBAL_STATE["play_stream"]
+    if not stream:
+        return
+
+    # 柔和蜂鸣参数：低频率+稍长时长，避免尖锐
+    freq1, dur1 = 440, 0.2  # 第一段：中音（440Hz，0.2秒）
+    freq2, dur2 = 330, 0.3  # 第二段：低音（330Hz，0.3秒）
+    sample_rate = AUDIO_CONFIG["rate"]
+
+    try:
+        stream.start_stream()
+        # 生成并播放两段蜂鸣
+        for freq, dur in [(freq1, dur1), (freq2, dur2)]:
+            # 生成正弦波音频（直接转字节，跳过列表拼接）
+            samples = (32767 * math.sin(2 * math.pi * freq * i / sample_rate) for i in range(int(sample_rate * dur)))
+            audio_bytes = b''.join(int(s).to_bytes(2, 'little', signed=True) for s in samples)
+            # 直接播放（复用配置的chunk_size，无需补0）
+            for i in range(0, len(audio_bytes), AUDIO_CONFIG["chunk"]):
+                stream.write(audio_bytes[i:i+AUDIO_CONFIG["chunk"]])
+        stream.stop_stream()
+    except Exception as e:
+        print(f"蜂鸣播放失败：{str(e)}")
+        if stream.is_active():
+            stream.stop_stream()
 
 def play_response_audio(audio_base64):
     """播放服务端回复音频（使用全局状态中的音频流）"""
@@ -251,6 +279,7 @@ def listen_wakeup_word():
             pcm = recorder.read()
             if porcupine.process(pcm) != -1:
                 print("\n检测到唤醒词，进入对话模式...")
+                play_wakeup_beep()
                 start_continuous_chat()
                 print("\n继续监听唤醒词：Hi-Siri（按 Ctrl+C 停止）")
     except KeyboardInterrupt:

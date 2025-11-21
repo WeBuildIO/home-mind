@@ -1,0 +1,4 @@
+pyaudio==0.2.13          # 音频录制/播放（麦克风+扬声器）
+requests==2.31.0         # 服务端 HTTP 通信（调用 Spring AI）
+pvporcupine==3.0.5       # 唤醒词识别核心（Hi-Siri 触发，支持 access_key，M4 兼容）
+pvrecorder==1.2.3        # 唤醒词配套录音工具
