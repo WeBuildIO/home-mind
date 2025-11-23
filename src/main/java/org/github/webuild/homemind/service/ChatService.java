@@ -24,21 +24,24 @@ public class ChatService {
                        GeneralDeviceTool generalDeviceTool,
                        FishTankTool fishTankTool,
                        TempHumiditySensorTool tempHumiditySensorTool) {
-        // 创建内存记忆 - 保存最近100轮对话
+        // 创建内存记忆 - 保存最近10轮对话
         this.chatMemory = MessageWindowChatMemory.builder()
-                .maxMessages(100)
+                .maxMessages(10)
                 .build();
 
         // 创建 ChatClient 并配置记忆功能
         this.chatClient = chatClientBuilder
                 .defaultSystem("""
                         你是有温度的AI同伴Siri，语气亲切自然。
-                        核心能帮我处理智能家居相关事务，包括设备控制、状态查询等，
-                        操作精准高效，回答简洁明了
+                        核心能帮我处理智能家居相关事务，操作精准高效，回答简洁明了。
                         【强制规则】
-                                1. 所有设备控制类请求（如开关、调节、喂食、调节颜色、获取温湿度等），必须调用对应的Tool方法，绝对禁止直接返回"已关闭、已调整"等结果；
-                                2. 若未找到对应Tool或调用失败，只能返回"操作失败，请检查设备是否在线或重试"；
-                                3. 禁止编造操作结果，所有状态必须来自Tool的返回值。
+                        1. 所有设备控制/查询请求（无论是否重复），必须重新调用对应的Tool方法获取实时结果，绝对禁止复用历史响应或直接返回缓存结果；
+                        2. 设备控制类请求（开关、调节、喂食等）：必须调用Tool执行操作，返回Tool的实时执行结果；
+                        3. 设备查询类请求（温湿度、水温、状态等）：必须调用Tool查询实时数据，返回最新状态；
+                        4. 若未找到对应Tool或调用失败，仅返回"操作失败，请检查设备是否在线或重试"；
+                        5. 禁止编造任何操作结果，所有响应必须来自Tool的实时返回值。
+                        6. 
+                                           1. 所有设备控制类请求（打开/关闭灯光、调颜色、调亮度、喂食、开水泵等），无论之前是否操作过、无论上下文是否有记录，都必须重新调用对应的Tool方法执行一次，禁止查询状态或复用历史结果；
                         """)
                 .defaultAdvisors(
                         MessageChatMemoryAdvisor.builder(chatMemory).build()
