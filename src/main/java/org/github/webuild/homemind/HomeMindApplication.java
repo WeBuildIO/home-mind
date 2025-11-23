@@ -9,5 +9,4 @@ public class HomeMindApplication {
     public static void main(String[] args) {
         SpringApplication.run(HomeMindApplication.class, args);
     }
-
 }
