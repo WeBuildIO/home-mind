@@ -7,21 +7,18 @@ import os
 import sys
 from datetime import datetime
 from config import AUDIO_CONFIG, SILENCE_CONFIG, SERVER_CONFIG, WAKEUP_CONFIG, GLOBAL_STATE
-
 # ========================= 工具函数（解耦复用）=========================
 def calculate_min_audio_size():
     """计算最小有效音频字节数（基于音频配置动态计算）"""
     return int(
         AUDIO_CONFIG["rate"] * 16 / 8 * AUDIO_CONFIG["channels"] * SILENCE_CONFIG["min_speech_duration"]
     )
-
 def is_audio_silent(audio_chunk):
     """判断音频块是否为静音（RMS算法）"""
     if not audio_chunk:
         return True
     rms = (sum(byte**2 for byte in audio_chunk) / len(audio_chunk)) ** 0.5
     return rms < SILENCE_CONFIG["threshold"]
-
 # ========================= 音频播放相关（独立模块）=========================
 def init_audio_player():
     """初始化音频播放器（绑定到全局状态）"""
@@ -41,18 +38,15 @@ def init_audio_player():
     except Exception as e:
         print(f"音频播放器初始化失败：{str(e)}")
         return False
-
 def play_wakeup_beep():
     """模拟 Mac Siri 唤醒蜂鸣（短促柔和，还原原生质感）"""
     stream = GLOBAL_STATE["play_stream"]
     if not stream:
         return
-
     # 还原 Siri 音效参数：高频起调+低音收尾，总时长0.18秒
     freq1, dur1 = 660, 0.08  # 起调：中音（660Hz，短促0.08秒，模拟Siri“叮”）
     freq2, dur2 = 440, 0.1   # 收尾：低音（440Hz，稍长0.1秒，模拟Siri“咚”）
     sample_rate = AUDIO_CONFIG["rate"]
-
     try:
         stream.start_stream()
         # 合并音频流，无缝衔接（无间隔，还原Siri紧凑质感）
@@ -71,39 +65,38 @@ def play_wakeup_beep():
         print(f"蜂鸣播放失败：{str(e)}")
         if stream.is_active():
             stream.stop_stream()
-
 def play_response_audio(audio_base64):
     """播放服务端回复音频（使用全局状态中的音频流）"""
     stream = GLOBAL_STATE["play_stream"]
     if not stream:
         return
-
     try:
         audio_bytes = base64.b64decode(audio_base64)
         if len(audio_bytes) < 1000:
             return
-
         if not stream.is_active():
             stream.start_stream()
-
         chunk_size = AUDIO_CONFIG["chunk"]
         for i in range(0, len(audio_bytes), chunk_size):
             chunk = audio_bytes[i:i+chunk_size]
             if len(chunk) < chunk_size:
                 chunk += b'\x00' * (chunk_size - len(chunk))
             stream.write(chunk)
-
         stream.stop_stream()
     except Exception as e:
         if stream.is_active():
             stream.stop_stream()
-
-# ========================= 录音相关（独立模块）=========================
+# ========================= 录音相关（独立模块，核心优化）=========================
 def record_audio_with_detection():
-    """录音并检测有效语音（使用全局状态中的麦克风配置）"""
+    """录音并检测有效语音（优化后：1秒内精准触发，无延迟）"""
     min_audio_size = calculate_min_audio_size()
+    post_speech_silence = AUDIO_CONFIG["post_speech_silence"]  # 1秒
+    chunk_duration = AUDIO_CONFIG["chunk"] / AUDIO_CONFIG["rate"]  # 0.032秒/块（512/16000）
+    max_silence_chunks = int(post_speech_silence / chunk_duration)  # 1秒=31块（1/0.032≈31）
+    max_global_silence_chunks = int(AUDIO_CONFIG["timeout_seconds"] / chunk_duration)  # 6秒=188块
 
     try:
+        # 初始化录音设备（不变）
         p = pyaudio.PyAudio()
         stream = p.open(
             format=AUDIO_CONFIG["format"],
@@ -117,68 +110,77 @@ def record_audio_with_detection():
         print(f"录音设备初始化失败：{str(e)}")
         return None
 
-    print("\n请说话（6秒内无有效语音自动退出）...")
+    print("\n请说话（1秒无声音立即上传）...")
     frames = []
-    continuous_speech_count = 0
-    speech_detected = False
-    silence_start_time = None
-
+    speech_detected = False  # 关键：检测到1次有效语音就标记，无需连续4块
+    silence_chunk_count = 0  # 静音块计数（替代datetime，无时间误差）
+    global_silence_chunk_count = 0  # 全局静音块计数（无语音时用）
     total_chunks = int(AUDIO_CONFIG["rate"] / AUDIO_CONFIG["chunk"] * AUDIO_CONFIG["record_seconds"])
+
     for _ in range(total_chunks):
         try:
-            data = stream.read(AUDIO_CONFIG["chunk"])
+            data = stream.read(AUDIO_CONFIG["chunk"], exception_on_overflow=False)  # 防止溢出报错
         except Exception as e:
+            print(f"录音读取失败：{str(e)}")
             stream.stop_stream()
             stream.close()
             p.terminate()
             return None
-
         frames.append(data)
         current_max_volume = max(abs(byte) for byte in data)
         is_speech_chunk = not is_audio_silent(data) and current_max_volume > SILENCE_CONFIG["max_background_noise"]
 
         if is_speech_chunk:
-            continuous_speech_count += 1
-            silence_start_time = None
-            if continuous_speech_count >= SILENCE_CONFIG["continuous_chunks"]:
-                speech_detected = True
+            # 1. 检测到有效语音：重置所有计数，立即标记
+            speech_detected = True
+            silence_chunk_count = 0  # 重置静音计数
+            global_silence_chunk_count = 0  # 重置全局静音计数
+            print("正在聆听...", end='\r')  # 实时覆盖提示，无延迟
         else:
-            continuous_speech_count = 0
-            if not silence_start_time:
-                silence_start_time = datetime.now()
+            # 2. 未检测到语音：分场景计数
+            if speech_detected:
+                # 场景1：已检测到语音，计数静音块
+                silence_chunk_count += 1
+                # 计算当前静音时长（块数×单块时长），实时显示
+                current_silence_duration = silence_chunk_count * chunk_duration
+                print(f"静音中...{current_silence_duration:.2f}秒", end='\r')
+                # 关键：达到1秒（31块）立即停止，无额外等待
+                if silence_chunk_count >= max_silence_chunks:
+                    print("\n✅ 1秒无声音，立即上传...")
+                    break
             else:
-                silence_duration = (datetime.now() - silence_start_time).total_seconds()
-                if silence_duration >= AUDIO_CONFIG["timeout_seconds"]:
-                    print("连续6秒无有效语音，退出对话...")
+                # 场景2：未检测到语音，计数全局静音
+                global_silence_chunk_count += 1
+                if global_silence_chunk_count >= max_global_silence_chunks:
+                    print("\n❌ 6秒无有效语音，退出对话...")
                     stream.stop_stream()
                     stream.close()
                     p.terminate()
                     return None
 
+    # 释放录音资源（不变）
     stream.stop_stream()
     stream.close()
     p.terminate()
-    audio_bytes = bytes().join(frames)
 
+    # 过滤无效音频（不变）
+    audio_bytes = bytes().join(frames)
     if not speech_detected:
         print("未检测到有效语音，退出对话...")
         return None
     if len(audio_bytes) < min_audio_size:
-        print("音频过短，退出对话...")
+        print("音频过短（需超过0.8秒），退出对话...")
         return None
 
     return audio_bytes
-
 # ========================= 服务端交互（独立模块）=========================
 def send_audio_to_server(audio_bytes):
     """发送音频到服务端并处理响应（更新全局会话ID）"""
     if not audio_bytes:
         return True
-
     params = {}
     if GLOBAL_STATE["conversation_id"]:
         params["conversationId"] = GLOBAL_STATE["conversation_id"]
-
     try:
         response = requests.post(
             SERVER_CONFIG["url"],
@@ -192,39 +194,31 @@ def send_audio_to_server(audio_bytes):
     except Exception as e:
         print(f"服务端交互异常：{str(e)}")
         return True
-
     # 更新全局会话ID（用于连续对话上下文）
     if result.get("conversationId"):
         GLOBAL_STATE["conversation_id"] = result["conversationId"]
-
     # 处理服务端错误
     if result.get("error"):
         print(f"服务端错误：{result['error']}")
         return True
-
     chat_reply = result.get("chatReply", "").strip()
     if not chat_reply:
         print("未获取到有效回复")
         return True
-
     # 显示核心对话内容
     print("\n" + "="*50)
     print(f"你说的是：{result.get('recognizedText', '无')}")
     print(f"回复：{chat_reply}")
     print("="*50 + "\n")
-
     # 播放回复音频
     if result.get("audioBase64"):
         play_response_audio(result["audioBase64"])
-
     return False
-
 # ========================= 唤醒相关（独立模块）=========================
 def get_ppn_file_path():
     """获取唤醒词模型文件路径（基于程序运行目录）"""
     current_dir = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(current_dir, WAKEUP_CONFIG["ppn_file_name"])
-
 def init_wakeup_engine():
     """初始化唤醒引擎（绑定到全局状态）"""
     try:
@@ -233,12 +227,10 @@ def init_wakeup_engine():
     except ImportError:
         print("唤醒模块导入失败：请安装 pvporcupine 和 pvrecorder")
         return False
-
     ppn_path = get_ppn_file_path()
     if not os.path.exists(ppn_path):
         print(f"唤醒词模型文件不存在：{ppn_path}")
         return False
-
     try:
         porcupine = pvporcupine.create(
             access_key=WAKEUP_CONFIG["access_key"],
@@ -250,7 +242,6 @@ def init_wakeup_engine():
             frame_length=porcupine.frame_length
         )
         recorder.start()
-
         # 初始化唤醒相关全局状态
         GLOBAL_STATE["porcupine"] = porcupine
         GLOBAL_STATE["wakeup_recorder"] = recorder
@@ -267,16 +258,13 @@ def init_wakeup_engine():
         else:
             print(f"唤醒引擎初始化失败：{str(e)}")
         return False
-
 def listen_wakeup_word():
     """监听唤醒词（使用全局状态中的唤醒引擎实例）"""
     porcupine = GLOBAL_STATE["porcupine"]
     recorder = GLOBAL_STATE["wakeup_recorder"]
     if not porcupine or not recorder:
         return
-
     print("\n唤醒监听已启动，请说 'Hi-Siri' 触发对话（按 Ctrl+C 停止）")
-
     try:
         while True:
             pcm = recorder.read()
@@ -289,7 +277,6 @@ def listen_wakeup_word():
         print("\n用户主动停止监听")
     except Exception as e:
         print(f"\n唤醒监听异常：{str(e)}")
-
 # ========================= 连续对话核心（业务逻辑）=========================
 def start_continuous_chat():
     """连续对话业务逻辑（依赖全局状态和各独立模块）"""
@@ -298,12 +285,10 @@ def start_continuous_chat():
         if not audio_data:
             print("对话已退出")
             break
-
         need_exit = send_audio_to_server(audio_data)
         if need_exit:
             print("对话已退出")
             break
-
 # ========================= 资源释放（统一管理）=========================
 def release_all_resources():
     """释放所有全局状态中的资源（避免泄露）"""
@@ -313,7 +298,6 @@ def release_all_resources():
         GLOBAL_STATE["play_stream"].close()
     if GLOBAL_STATE["audio_player"]:
         GLOBAL_STATE["audio_player"].terminate()
-
     # 释放唤醒资源
     if GLOBAL_STATE["wakeup_recorder"] and GLOBAL_STATE["wakeup_recorder"].is_recording:
         GLOBAL_STATE["wakeup_recorder"].stop()

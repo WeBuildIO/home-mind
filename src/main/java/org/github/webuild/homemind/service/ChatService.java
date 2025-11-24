@@ -6,6 +6,7 @@ import org.github.webuild.homemind.dto.ChatResponse;
 import org.github.webuild.homemind.localtool.DateTimeTools;
 import org.github.webuild.homemind.localtool.homeassistant.FishTankTool;
 import org.github.webuild.homemind.localtool.homeassistant.GeneralDeviceTool;
+import org.github.webuild.homemind.localtool.homeassistant.StoneRobotNavigationTool;
 import org.github.webuild.homemind.localtool.homeassistant.TempHumiditySensorTool;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
@@ -23,7 +24,8 @@ public class ChatService {
     public ChatService(ChatClient.Builder chatClientBuilder,
                        GeneralDeviceTool generalDeviceTool,
                        FishTankTool fishTankTool,
-                       TempHumiditySensorTool tempHumiditySensorTool) {
+                       TempHumiditySensorTool tempHumiditySensorTool,
+                       StoneRobotNavigationTool stoneRobotNavigationTool) {
         // 创建内存记忆 - 保存最近10轮对话
         this.chatMemory = MessageWindowChatMemory.builder()
                 .maxMessages(10)
@@ -40,17 +42,18 @@ public class ChatService {
                         3. 设备查询类请求（温湿度、水温、状态等）：必须调用Tool查询实时数据，返回最新状态；
                         4. 若未找到对应Tool或调用失败，仅返回"操作失败，请检查设备是否在线或重试"；
                         5. 禁止编造任何操作结果，所有响应必须来自Tool的实时返回值。
-                        6. 
-                                           1. 所有设备控制类请求（打开/关闭灯光、调颜色、调亮度、喂食、开水泵等），无论之前是否操作过、无论上下文是否有记录，都必须重新调用对应的Tool方法执行一次，禁止查询状态或复用历史结果；
+                        6. 所有设备控制类请求（打开/关闭灯光、调颜色、调亮度、喂食、开水泵等），无论之前是否操作过、无论上下文是否有记录，都必须重新调用对应的Tool方法执行一次，禁止查询状态或复用历史结果；
+                        7. 扫地机器人相关指令（包括前往房间、回充、返回充电座、停止并回充），必须调用RoborockP10NavigationTool的navigateToLocation方法，禁止直接返回无法控制的回复；
                         """)
-                .defaultAdvisors(
-                        MessageChatMemoryAdvisor.builder(chatMemory).build()
-                )
+//                .defaultAdvisors(
+//                        MessageChatMemoryAdvisor.builder(chatMemory).build()
+//                )
                 .defaultTools(
                         new DateTimeTools(),
                         generalDeviceTool,
                         fishTankTool,
-                        tempHumiditySensorTool
+                        tempHumiditySensorTool,
+                        stoneRobotNavigationTool
                 )
                 .build();
     }
